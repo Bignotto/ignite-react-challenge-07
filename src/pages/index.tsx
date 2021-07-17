@@ -8,7 +8,29 @@ import { api } from '../services/api';
 import { Loading } from '../components/Loading';
 import { Error } from '../components/Error';
 
+interface Card {
+  title: string;
+  description: string;
+  url: string;
+  ts: number;
+  id: string;
+}
+
+interface PageResponse {
+  data: Card[];
+  after: string;
+}
+
 export default function Home(): JSX.Element {
+  const fetchImages = async ({ pageParam = null }): Promise<PageResponse> => {
+    const response = await api.get('/api/images', {
+      params: {
+        after: pageParam,
+      },
+    });
+    return response.data;
+  };
+
   const {
     data,
     isLoading,
@@ -16,20 +38,30 @@ export default function Home(): JSX.Element {
     isFetchingNextPage,
     fetchNextPage,
     hasNextPage,
-  } = useInfiniteQuery(
-    'images',
-    // TODO AXIOS REQUEST WITH PARAM
-    ,
-    // TODO GET AND RETURN NEXT PAGE PARAM
-  );
+  } = useInfiniteQuery('images', fetchImages, {
+    getNextPageParam: lastPage => lastPage.after ?? null,
+  });
 
-  const formattedData = useMemo(() => {
-    // TODO FORMAT AND FLAT DATA ARRAY
-  }, [data]);
+  const formattedData: Card[] = useMemo(() => {
+    if (isLoading) return;
 
-  // TODO RENDER LOADING SCREEN
+    if (data?.pages) {
+      const flattenedData: PageResponse[] = data.pages.flat();
 
-  // TODO RENDER ERROR SCREEN
+      const cards = flattenedData
+        .map(page => {
+          return page.data;
+        })
+        .flat();
+
+      // eslint-disable-next-line consistent-return
+      return cards;
+    }
+  }, [data, isLoading]);
+
+  if (isLoading) return <Loading />;
+
+  if (isError) return <Error />;
 
   return (
     <>
@@ -37,7 +69,16 @@ export default function Home(): JSX.Element {
 
       <Box maxW={1120} px={20} mx="auto" my={20}>
         <CardList cards={formattedData} />
-        {/* TODO RENDER LOAD MORE BUTTON IF DATA HAS NEXT PAGE */}
+        {hasNextPage && (
+          <Button
+            mt={10}
+            onClick={() => fetchNextPage()}
+            isLoading={isFetchingNextPage}
+            loadingText="Carregando..."
+          >
+            Carregar mais
+          </Button>
+        )}
       </Box>
     </>
   );
