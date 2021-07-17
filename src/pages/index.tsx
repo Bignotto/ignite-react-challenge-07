@@ -1,5 +1,5 @@
 import { Button, Box } from '@chakra-ui/react';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useInfiniteQuery } from 'react-query';
 
 import { Header } from '../components/Header';
@@ -16,15 +16,13 @@ interface Card {
   id: string;
 }
 
-interface CardResponse {
+interface PageResponse {
   data: Card[];
   after: string;
 }
 
 export default function Home(): JSX.Element {
-  const [hasMorePages, setHasMorePages] = useState(true);
-  const fetchImages = async ({ pageParam = null }) => {
-    console.log('FETCH!!');
+  const fetchImages = async ({ pageParam = null }): Promise<PageResponse> => {
     const response = await api.get('/api/images', {
       params: {
         after: pageParam,
@@ -41,21 +39,29 @@ export default function Home(): JSX.Element {
     fetchNextPage,
     hasNextPage,
   } = useInfiniteQuery('images', fetchImages, {
-    getNextPageParam: lastPage => lastPage.data.after ?? null,
+    getNextPageParam: lastPage => lastPage.after ?? null,
   });
 
-  const formattedData = useMemo(() => {
-    // TODO FORMAT AND FLAT DATA ARRAY
-  }, [data]);
+  const formattedData: Card[] = useMemo(() => {
+    if (isLoading) return;
 
-  console.log({ w: `linha 51`, data });
-  // TODO RENDER LOADING SCREEN
+    if (data?.pages) {
+      const flattenedData: PageResponse[] = data.pages.flat();
+
+      const cards = flattenedData
+        .map(page => {
+          return page.data;
+        })
+        .flat();
+
+      // eslint-disable-next-line consistent-return
+      return cards;
+    }
+  }, [data, isLoading]);
+
   if (isLoading) return <Loading />;
-  console.log({ w: `linha 54`, data });
 
-  // TODO RENDER ERROR SCREEN
   if (isError) return <Error />;
-  console.log({ w: `linha 58`, data });
 
   return (
     <>
@@ -63,8 +69,7 @@ export default function Home(): JSX.Element {
 
       <Box maxW={1120} px={20} mx="auto" my={20}>
         <CardList cards={formattedData} />
-        {/* TODO RENDER LOAD MORE BUTTON IF DATA HAS NEXT PAGE */}
-        {hasMorePages && (
+        {hasNextPage && (
           <Button
             mt={10}
             onClick={() => fetchNextPage()}

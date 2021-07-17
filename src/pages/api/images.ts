@@ -71,11 +71,6 @@ export default async function handler(
           ts: item.ts,
           id: item.ref.id,
         }));
-        // console.log({
-        //   data: formattedData,
-        //   after: response.after ? response.after[0].id : null,
-        // });
-        console.log('API GET /api/images');
         return res.json({
           data: formattedData,
           after: response.after ? response.after[0].id : null,
