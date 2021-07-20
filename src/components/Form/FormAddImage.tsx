@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { useState } from 'react';
 import { useMutation, useQueryClient } from 'react-query';
 
+import { FieldError } from 'react-hook-form';
 import { api } from '../../services/api';
 import { FileInput } from '../Input/FileInput';
 import { TextInput } from '../Input/TextInput';
@@ -22,9 +23,13 @@ export function FormAddImage({ closeModal }: FormAddImageProps): JSX.Element {
       required: { value: true, message: 'Arquivo obrigatório' },
       validate: {
         lessThan10MB: file =>
-          file[0].size / (1024 * 1024) > 10
+          file[0].size / (1024 * 1024) < 10
             ? true
             : 'O arquivo deve ser menor que 10MB',
+        acceptedFormats: file =>
+          file[0].type === 'image/jpeg'
+            ? true
+            : `Somente são aceitos arquivos PNG, JPEG e GIF - ${file[0].type}`,
       },
     },
     title: {
@@ -51,8 +56,6 @@ export function FormAddImage({ closeModal }: FormAddImageProps): JSX.Element {
   const { errors } = formState;
 
   const onSubmit = async (data: Record<string, unknown>): Promise<void> => {
-    console.log(data.description);
-
     try {
       // TODO SHOW ERROR TOAST IF IMAGE URL DOES NOT EXISTS
       // TODO EXECUTE ASYNC MUTATION
@@ -64,15 +67,38 @@ export function FormAddImage({ closeModal }: FormAddImageProps): JSX.Element {
     }
   };
 
-  const failValidate = async (err: Record<string, unknown>): Promise<void> => {
-    console.log(err);
-    toast({
-      title: 'Account created.',
-      description: "We've created your account for you.",
-      status: 'error',
-      duration: 4000,
-      isClosable: true,
-    });
+  const failValidate = async (
+    err: Record<string, FieldError>
+  ): Promise<void> => {
+    if (err.image) {
+      toast({
+        title: 'Erro',
+        description: err.image.message,
+        status: 'error',
+        duration: 4000,
+        isClosable: true,
+      });
+    }
+
+    if (err.title) {
+      toast({
+        title: 'Erro',
+        description: err.title.message,
+        status: 'error',
+        duration: 4000,
+        isClosable: true,
+      });
+    }
+
+    if (err.description) {
+      toast({
+        title: 'Erro',
+        description: err.description.message,
+        status: 'error',
+        duration: 4000,
+        isClosable: true,
+      });
+    }
   };
 
   return (
