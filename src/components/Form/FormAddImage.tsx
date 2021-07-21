@@ -19,7 +19,6 @@ export function FormAddImage({ closeModal }: FormAddImageProps): JSX.Element {
 
   const formValidations = {
     image: {
-      // TODO ACCEPTED FORMATS VALIDATIONS
       required: { value: true, message: 'Arquivo obrigatório' },
       validate: {
         lessThan10MB: file =>
@@ -45,9 +44,19 @@ export function FormAddImage({ closeModal }: FormAddImageProps): JSX.Element {
 
   const queryClient = useQueryClient();
   const mutation = useMutation(
-    // TODO MUTATION API POST REQUEST,
+    async (data: Record<string, unknown>) => {
+      const response = await api.post('api/images', {
+        url: imageUrl,
+        title: data.title,
+        description: data.description,
+      });
+
+      return response.data.image;
+    },
     {
-      // TODO ONSUCCESS MUTATION
+      onSuccess: () => {
+        queryClient.invalidateQueries('images');
+      },
     }
   );
 
@@ -57,13 +66,36 @@ export function FormAddImage({ closeModal }: FormAddImageProps): JSX.Element {
 
   const onSubmit = async (data: Record<string, unknown>): Promise<void> => {
     try {
-      // TODO SHOW ERROR TOAST IF IMAGE URL DOES NOT EXISTS
-      // TODO EXECUTE ASYNC MUTATION
-      // TODO SHOW SUCCESS TOAST
+      if (!imageUrl)
+        toast({
+          title: 'Erro',
+          description: 'Image URL does not exist.',
+          status: 'error',
+          duration: 4000,
+          isClosable: true,
+        });
+
+      await mutation.mutateAsync(data);
+
+      if (!imageUrl)
+        toast({
+          title: 'Sucesso!',
+          description: 'Imagem adicionada à galera!',
+          status: 'success',
+          duration: 4000,
+          isClosable: true,
+        });
     } catch {
-      // TODO SHOW ERROR TOAST IF SUBMIT FAILED
+      toast({
+        title: 'Erro',
+        description: 'Something went wrong with mutation.',
+        status: 'error',
+        duration: 4000,
+        isClosable: true,
+      });
     } finally {
-      // TODO CLEAN FORM, STATES AND CLOSE MODAL
+      reset();
+      closeModal();
     }
   };
 
